@@ -51,8 +51,13 @@ def on_receive(data: dict) -> dict:
             causal_model = pickle.load(file)
 
         # Step 2: Causal Query - Anomaly Attribution
-        attribution_scores_array = gcm.attribute_anomalies(causal_model, anomalous_node, anomaly_samples=anomaly_data)
-        attribution_scores = {key: value[0] for key, value in attribution_scores_array.items()}
+        attribution_scores_median,  attribution_scores_intervals = gcm.confidence_intervals(
+            gcm.bootstrap_sampling(gcm.attribute_anomalies,
+                                   causal_model,
+                                   anomalous_node, 
+                                   anomaly_samples=anomaly_data))
+        
+        attribution_scores = attribution_scores_median
         attribution_scores_pct = convert_to_percentage(attribution_scores)
 
         # --- Prepare Output Dictionary (sorted descending by value) ---
@@ -72,6 +77,8 @@ def on_receive(data: dict) -> dict:
             )
         )
 
+        attribution_scores_intervals_dict = dict((treatment, [round(x, 2) for x in value.tolist()]) for treatment, value in attribution_scores_intervals.items())
+        
         # Return successful evaluation result
         result = {
             "timestamp": timestamp,
@@ -80,7 +87,8 @@ def on_receive(data: dict) -> dict:
             "anomalous_node": data.get("anomalous_node"),
             "anomaly_data": json.dumps(data.get("anomaly_data")),
             "anomaly_attribution": json.dumps(attribution_scores_dict),
-            "anomaly_attribution_pct": json.dumps(attribution_scores_pct_dict)
+            "anomaly_attribution_pct": json.dumps(attribution_scores_pct_dict),
+            "anomaly_attribution_confidence": json.dumps(attribution_scores_intervals_dict)
         }
 
     except Exception as e:
@@ -92,7 +100,8 @@ def on_receive(data: dict) -> dict:
             "anomalous_node": data.get("anomalous_node"),
             "anomaly_data": json.dumps(data.get("anomaly_data")),
             "anomaly_attribution": None,
-            "anomaly_attribution_pct": None
+            "anomaly_attribution_pct": None,
+            "anomaly_attribution_confidence": None
         }
 
     return result
