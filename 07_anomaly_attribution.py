@@ -4,14 +4,14 @@
 data = {
     "model_path": "invertible_causal_model.pkl",
     "anomalous_node": 'egt_turbo_inlet',
-    "anomaly_data": {"altitude": [1,2], 
-                        "ambient_temp": [2,3], 
-                        "engine_load": [2,4], 
-                        "engine_rpm": [2,5], 
-                        "air_filter_pressure": [2,5], 
-                        "coolant_temp": [2,5], 
-                        "fuel_consumption": [2,5], 
-                        "egt_turbo_inlet": [2,5]}
+    "anomaly_data": {"altitude": [1], 
+                        "ambient_temp": [2], 
+                        "engine_load": [3], 
+                        "engine_rpm": [4], 
+                        "air_filter_pressure": [5], 
+                        "coolant_temp": [6], 
+                        "fuel_consumption": [7], 
+                        "egt_turbo_inlet": [8]}
 } # Observation must contain all features, treatments and outcomes
 
 """ In MetaAgent """
@@ -44,6 +44,8 @@ def on_receive(data: dict) -> dict:
 
         # Step 2: Causal Query - Anomaly Attribution
         attribution_scores = gcm.attribute_anomalies(causal_model, anomalous_node, anomaly_samples=anomaly_data)
+        print(attribution_scores)
+        print("AFTER")
         attribution_scores_df = pd.DataFrame(attribution_scores)
         attribution_scores_json = attribution_scores_df.to_json(orient='records')
 

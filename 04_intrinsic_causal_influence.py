@@ -69,7 +69,6 @@ def on_receive(data: dict) -> dict:
             )
         )
         intrinsic_influence_intervals_dict = dict((treatment, [round(x, 2) for x in value.tolist()]) for treatment, value in intrinsic_influence_intervals.items())
-        print(intrinsic_influence_intervals_dict)
 
         # Return successful evaluation result
         result = {
