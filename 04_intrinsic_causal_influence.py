@@ -43,7 +43,13 @@ def on_receive(data: dict) -> dict:
             causal_model = pickle.load(file)
 
         # Step 2: Causal Query - Intrinsic Causal Influence
-        intrinsic_influence = gcm.intrinsic_causal_influence(causal_model, target_node=target_node, num_samples_randomization=500)
+        intrinsic_influence_median,  intrinsic_influence_intervals = gcm.confidence_intervals(
+            gcm.bootstrap_sampling(gcm.intrinsic_causal_influence,
+                                   causal_model,
+                                   target_node=target_node, 
+                                   num_samples_randomization=100))
+        
+        intrinsic_influence = intrinsic_influence_median
         intrinsic_influence_pct = convert_to_percentage(intrinsic_influence)
 
         # --- Prepare Output Dictionary (sorted descending by value) ---
@@ -62,6 +68,8 @@ def on_receive(data: dict) -> dict:
                 reverse=True
             )
         )
+        intrinsic_influence_intervals_dict = dict((treatment, [round(x, 2) for x in value.tolist()]) for treatment, value in intrinsic_influence_intervals.items())
+        print(intrinsic_influence_intervals_dict)
 
         # Return successful evaluation result
         result = {
@@ -70,7 +78,8 @@ def on_receive(data: dict) -> dict:
             "message": "Intrinsic influences calculated successfully.",
             "target_node": target_node,
             "intrinsic_influence": json.dumps(intrinsic_influence_dict),
-            "intrinsic_influence_pct": json.dumps(intrinsic_influence_pct_dict)
+            "intrinsic_influence_pct": json.dumps(intrinsic_influence_pct_dict),
+            "intrinsic_influence_intervals": json.dumps(intrinsic_influence_intervals_dict)
         }
 
     except Exception as e:
@@ -81,12 +90,11 @@ def on_receive(data: dict) -> dict:
             "message": str(e),
             "target_node": data.get("target_node", ""),
             "intrinsic_influence": None,
-            "intrinsic_influence_pct": None
+            "intrinsic_influence_pct": None,
+            "intrinsic_influence_intervals": None
         }
 
     return result
 
 result = on_receive(data)
 print(result)
-print("###########")
-print(result["intrinsic_influence"])
