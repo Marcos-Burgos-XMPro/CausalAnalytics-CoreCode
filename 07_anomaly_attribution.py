@@ -22,16 +22,24 @@ from datetime import datetime
 import pickle
 import warnings
 import json
-import ast
 import pandas as pd
+import numpy as np
 
 # Suppress all warnings
 warnings.filterwarnings("ignore")
 
 def on_receive(data: dict) -> dict:
+    def convert_to_percentage(value_dictionary: dict) -> dict:
+        total_absolute_sum = np.sum([abs(v) for v in value_dictionary.values()])
+        if total_absolute_sum == 0:
+            # Avoid division by zero
+            return {k: 0 for k in value_dictionary}
+        return {k: abs(v) / total_absolute_sum * 100 for k, v in value_dictionary.items()}
+    
     # Set a fixed random seed for reproducibility
     gcm.util.general.set_random_seed(0)
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
     try:
         # Retrieve input parameters from the data dictionary
         model_path = data.get("model_path")
@@ -43,11 +51,26 @@ def on_receive(data: dict) -> dict:
             causal_model = pickle.load(file)
 
         # Step 2: Causal Query - Anomaly Attribution
-        attribution_scores = gcm.attribute_anomalies(causal_model, anomalous_node, anomaly_samples=anomaly_data)
-        print(attribution_scores)
-        print("AFTER")
-        attribution_scores_df = pd.DataFrame(attribution_scores)
-        attribution_scores_json = attribution_scores_df.to_json(orient='records')
+        attribution_scores_array = gcm.attribute_anomalies(causal_model, anomalous_node, anomaly_samples=anomaly_data)
+        attribution_scores = {key: value[0] for key, value in attribution_scores_array.items()}
+        attribution_scores_pct = convert_to_percentage(attribution_scores)
+
+        # --- Prepare Output Dictionary (sorted descending by value) ---
+        attribution_scores_dict = dict(
+            sorted(
+                ((treatment, round(value, 2)) for treatment, value in attribution_scores.items()),
+                key=lambda item: item[1],
+                reverse=True
+            )
+        )
+
+        attribution_scores_pct_dict = dict(
+            sorted(
+                ((treatment, round(value, 2)) for treatment, value in attribution_scores_pct.items()),
+                key=lambda item: item[1],
+                reverse=True
+            )
+        )
 
         # Return successful evaluation result
         result = {
@@ -56,7 +79,8 @@ def on_receive(data: dict) -> dict:
             "message": "Successful Calculation of Anomaly Attribution",
             "anomalous_node": data.get("anomalous_node"),
             "anomaly_data": json.dumps(data.get("anomaly_data")),
-            "anomaly_attribution": json.dumps(attribution_scores_json)
+            "anomaly_attribution": json.dumps(attribution_scores_dict),
+            "anomaly_attribution_pct": json.dumps(attribution_scores_pct_dict)
         }
 
     except Exception as e:
@@ -67,7 +91,8 @@ def on_receive(data: dict) -> dict:
             "message": str(e),
             "anomalous_node": data.get("anomalous_node"),
             "anomaly_data": json.dumps(data.get("anomaly_data")),
-            "anomaly_attribution": None
+            "anomaly_attribution": None,
+            "anomaly_attribution_pct": None
         }
 
     return result
