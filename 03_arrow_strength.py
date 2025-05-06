@@ -43,7 +43,12 @@ def on_receive(data: dict) -> dict:
             causal_model = pickle.load(file)
 
         # Step 2: Causal Query - Direct Arrow Strength
-        arrow_strengths = gcm.arrow_strength(causal_model, target_node=target_node)
+        arrow_strengths_median, arrow_strengths_intervals = gcm.confidence_intervals(
+            gcm.bootstrap_sampling(gcm.arrow_strength,
+                                   causal_model,
+                                   target_node=target_node))
+        
+        arrow_strengths = arrow_strengths_median
         arrow_strengths_pct = convert_to_percentage(arrow_strengths)
 
         # --- Prepare Output Dictionary (sorted descending by value) ---
@@ -61,6 +66,7 @@ def on_receive(data: dict) -> dict:
                 reverse=True
             )
         )
+        arrow_strengths_intervals_dict = dict((treatment, [round(x, 2) for x in value.tolist()]) for (treatment, _), value in arrow_strengths_intervals.items())
 
         # Return successful evaluation result
         result = {
@@ -69,7 +75,8 @@ def on_receive(data: dict) -> dict:
             "message": "Arrow strengths calculated successfully.",
             "target_node": target_node,
             "arrow_strength": json.dumps(arrow_strengths_dict),
-            "arrow_strength_pct": json.dumps(arrow_strengths_pct_dict)
+            "arrow_strength_pct": json.dumps(arrow_strengths_pct_dict),
+            "arrow_strengths_intervals": json.dumps(arrow_strengths_intervals_dict)
         }
 
     except Exception as e:
@@ -80,12 +87,11 @@ def on_receive(data: dict) -> dict:
             "message": str(e),
             "target_node": data.get("target_node", ""),
             "arrow_strength": None,
-            "arrow_strength_pct": None
+            "arrow_strength_pct": None,
+            "arrow_strengths_intervals": None
         }
 
     return result
 
 result = on_receive(data)
 print(result)
-print("###########")
-print(result["arrow_strength"])
