@@ -37,17 +37,45 @@ from dowhy import gcm
 from datetime import datetime
 import pickle
 import warnings
+import json
 
 # Suppress all warnings
 warnings.filterwarnings("ignore")
 
 def on_receive(data: dict) -> dict:
+    """
+    Processes an input dictionary to evaluate a pre-trained causal model using observational data.
+
+    This function:
+    - Deserializes the observational data (if in JSON string format) or uses it directly (if already in dict/list form),
+    - Loads a pre-trained causal model from the specified pickle file path,
+    - Evaluates the model using the `dowhy.gcm.evaluate_causal_model` function with mechanism baseline comparison,
+    - Returns a dictionary containing the evaluation results, timestamp, and status.
+
+    Parameters:
+        data (dict): A dictionary containing:
+            - 'observation' (str or list[dict]): Observational data either as a JSON string or as a list of dictionaries.
+            - 'model_path' (str): Path to the pickle file containing the pre-trained causal model.
+
+    Returns:
+        dict: A result dictionary with the following keys:
+            - 'timestamp' (str): The time at which the evaluation was performed.
+            - 'status' (str): "success" if the evaluation was successful; otherwise "error".
+            - 'message' (str): A message describing the result or the error.
+            - 'summary_evaluation' (dict or None): The evaluation summary if successful; otherwise None.
+    """
     try:
         # Set a fixed random seed for reproducibility
         gcm.util.general.set_random_seed(0)
 
-        # Step 0: Read the observation dataset into a pandas DataFrame
-        observation = pd.DataFrame(data['observation'])
+        # --- Step 0: Read the test dataset into a pandas DataFrame
+        # Option 1: If the data is a JSON string that needs to be deserialized
+        if isinstance(data['observation'], str):
+            deserialized_data = json.loads(data['observation'])  # In Meta Agent
+        # Option 2: If the data is already a dictionary
+        else:
+            deserialized_data = data['observation']  # In Local
+        observation = pd.DataFrame(deserialized_data)
 
         # Step 1: Load the pre-trained causal model from file
         with open(data['model_path'], 'rb') as file:
@@ -84,5 +112,3 @@ def on_receive(data: dict) -> dict:
 
 result = on_receive(data)
 print(result)
-print("###########")
-print(result["summary_evaluation"])
