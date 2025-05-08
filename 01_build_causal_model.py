@@ -55,7 +55,8 @@ data = {
     "observation": observation_input,
     "causal_relationships": causal_relationships,
     "causal_model_type": "invertible", # {invertible, non-invertible}
-    "model_path": ""
+    "model_path": "",
+    "model_name": "causal-model"
 }
 
 """ In MetaAgent"""
@@ -68,8 +69,28 @@ import pickle
 import ast
 import os
 from datetime import datetime
+import json
 
 def on_receive(data: dict) -> dict:
+    """
+    Handles incoming data, trains the appropriate causal model type 
+    (invertible or non-invertible), and returns model training status information.
+
+    Args:
+        data (dict): A dictionary containing:
+        - observation (str): Telemetry data from the CSV file
+        - causal_relationships (str): String representation of causal graph edges
+        - causal_model_type (str): Model type, either "invertible" or "non-invertible"
+        - model_path (str): Directory path where the trained model should be saved
+
+    Returns:
+        dict: Result dictionary containing:
+        - timestamp (str): Timestamp of process completion
+        - status (str): "success" or "error"
+        - message (str): Description of the outcome
+        - causal_model_type (str): Model type used (echoed from input)
+        - saved_path (str): Path where model was saved, or None if error
+    """
     try:
         # Retrieve input parameters from the data dictionary
         causal_model_type = data.get("causal_model_type")
@@ -77,11 +98,18 @@ def on_receive(data: dict) -> dict:
         gcm.util.general.set_random_seed(0)
 
         # --- Step 0: Read the test dataset into a pandas DataFrame
-        observation = pd.DataFrame(data['observation'])
+        # Option 1: If the data is a JSON string that needs to be deserialized
+        if isinstance(data['observation'], str):
+            deserialized_data = json.loads(data['observation'])  # In Meta Agent
+        # Option 2: If the data is already a dictionary
+        else:
+            deserialized_data = data['observation']  # In Local
+        observation = pd.DataFrame(deserialized_data)
 
         # --- Step 1: Define Causal Model ---
         # Create a directed graph representing the causal relationships
-        causal_graph = nx.DiGraph(ast.literal_eval(data["causal_relationships"].strip()))
+        causal_relationship = ast.literal_eval(data["causal_relationships"].strip())
+        causal_graph = nx.DiGraph(causal_relationship)
 
         # Create the structural causal model object
         if causal_model_type == "non-invertible":
@@ -96,7 +124,7 @@ def on_receive(data: dict) -> dict:
         gcm.fit(causal_model, observation)
 
         # --- Step 3: Save the fitted model to a file
-        model_save_path = os.path.join(data["model_path"], 'invertible_causal_model.pkl')
+        model_save_path = os.path.join(data["model_path"], f'{data["model_name"]}.pkl')
         with open(model_save_path, 'wb') as file:
             pickle.dump(causal_model, file)
 
@@ -109,8 +137,7 @@ def on_receive(data: dict) -> dict:
             "status": "success",
             "message": "Model saved successfully.",
             "causal_model_type": data.get("causal_model_type"),
-            "saved_path": model_save_path,
-
+            "saved_path": model_save_path
         }
 
     except Exception as e:
