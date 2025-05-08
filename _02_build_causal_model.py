@@ -1,65 +1,18 @@
-""" Out of the MetaAgent"""
+"""
+Default script template for the Python Meta Action Agent.
 
-import csv
+When importing packages, follow the format below to add a comment at the end of declaration 
+and specify a version or a package name when the import name is different from expected python package.
+This allows the agent to install the correct package version during configuration:
+e.g. import paho.mqtt as np  # version=2.1.0 package=paho-mqtt
 
-# Read the CSV file into a dictionary
-def csv_to_dict(file_path):
-    with open(file_path, 'r') as f:
-        reader = csv.DictReader(f)
-        data_dict = []
-        for row in reader:
-            converted_row = {}
-            for key, value in row.items():
-                try:
-                    # Try to convert to float
-                    converted_value = float(value)
-                except ValueError:
-                    # If fails (e.g., a string like a timestamp), keep as-is
-                    converted_value = value
-                converted_row[key] = converted_value
-            data_dict.append(converted_row)
-    return data_dict
+This script provides a structure for implementing on_create, on_receive, and on_destroy functions.
+It includes a basic example using 'foo' and 'bar' concepts to demonstrate functionality.
+Each function should return a dictionary object with result data, or None if no result is needed.
+"""
 
-file_path = 'cat797f_egt_causal_data.csv'
-observation_input = csv_to_dict(file_path)
-
-causal_relationships = """
-    [
-        # Air intake system relationships
-        ('altitude', 'air_filter_pressure'),
-        ('air_filter_pressure', 'egt_turbo_inlet'),
-        ('air_filter_pressure', 'fuel_consumption'),
-        
-        # Primary mechanical relationships
-        ('engine_load', 'engine_rpm'),
-        ('engine_load', 'fuel_consumption'),
-        ('engine_rpm', 'air_filter_pressure'),
-        
-        # Environmental influences
-        ('altitude', 'engine_load'),
-        ('ambient_temp', 'coolant_temp'),
-        ('ambient_temp', 'egt_turbo_inlet'),
-        
-        # Fuel and combustion chain
-        ('fuel_consumption', 'egt_turbo_inlet'),
-        ('engine_load', 'egt_turbo_inlet'),
-        
-        # Cooling system relationships
-        ('coolant_temp', 'egt_turbo_inlet'),
-        ('engine_rpm', 'coolant_temp')
-    ]
-    """ 
-
-# Combine into the final data dictionary
-data = {
-    "observation": observation_input,
-    "causal_relationships": causal_relationships,
-    "causal_model_type": "invertible", # {invertible, non-invertible}
-    "model_path": "",
-    "model_name": "causal-model"
-}
-
-""" In MetaAgent"""
+def on_create(data: dict) -> dict | None:
+    return None
 
 # Install Libraries
 import networkx as nx
@@ -82,6 +35,7 @@ def on_receive(data: dict) -> dict:
         - causal_relationships (str): String representation of causal graph edges
         - causal_model_type (str): Model type, either "invertible" or "non-invertible"
         - model_path (str): Directory path where the trained model should be saved
+        - model_name (str): Name of the model to be saved
 
     Returns:
         dict: Result dictionary containing:
@@ -155,4 +109,5 @@ def on_receive(data: dict) -> dict:
 
     return result
 
-print(on_receive(data))
+def on_destroy() -> dict | None:
+    return None
