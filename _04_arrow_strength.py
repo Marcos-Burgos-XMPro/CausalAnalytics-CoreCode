@@ -103,11 +103,6 @@ def on_receive(data: dict) -> dict:
             )
         )
         arrow_strengths_intervals_dict = dict((treatment, [round(x, 2) for x in value.tolist()]) for (treatment, _), value in arrow_strengths_intervals.items())
-        print(json.dumps(arrow_strengths_dict))
-        txt_arrow_strengths_dict=json.dumps(arrow_strengths_dict)
-        txt_arrow_strengths_pct_dict=json.dumps(arrow_strengths_pct_dict)
-        txt_arrow_strengths_intervals_dict=json.dumps(arrow_strengths_intervals_dict)
-        print(txt_arrow_strengths_intervals_dict)
 
         # Return successful evaluation result
         result = {
@@ -115,9 +110,9 @@ def on_receive(data: dict) -> dict:
             "status": "success",
             "message": "Arrow strengths calculated successfully.",
             "target_node": target_node,
-            "arrow_strength": "Bug",
-            "arrow_strength_pct": txt_arrow_strengths_pct_dict,
-            "arrow_strengths_intervals": txt_arrow_strengths_intervals_dict
+            "arrow_strength": json.dumps(arrow_strengths_dict),
+            "arrow_strength_pct": json.dumps(arrow_strengths_pct_dict),
+            "arrow_strengths_intervals": json.dumps(arrow_strengths_intervals_dict)
         }
 
     except Exception as e:
