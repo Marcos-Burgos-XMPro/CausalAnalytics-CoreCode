@@ -103,7 +103,7 @@ def on_receive(data: dict) -> dict:
             )
         )
         arrow_strengths_intervals_dict = dict((treatment, [round(x, 2) for x in value.tolist()]) for (treatment, _), value in arrow_strengths_intervals.items())
-
+        print(json.dumps(arrow_strengths_dict))
         # Return successful evaluation result
         result = {
             "timestamp": timestamp,
