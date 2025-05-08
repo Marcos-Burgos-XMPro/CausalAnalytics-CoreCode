@@ -1,35 +1,18 @@
-""" Out of the MetaAgent"""
+"""
+Default script template for the Python Meta Action Agent.
 
-import csv
+When importing packages, follow the format below to add a comment at the end of declaration 
+and specify a version or a package name when the import name is different from expected python package.
+This allows the agent to install the correct package version during configuration:
+e.g. import paho.mqtt as np  # version=2.1.0 package=paho-mqtt
 
-# Read the CSV file into a dictionary
-def csv_to_dict(file_path):
-    with open(file_path, 'r') as f:
-        reader = csv.DictReader(f)
-        data_dict = []
-        for row in reader:
-            converted_row = {}
-            for key, value in row.items():
-                try:
-                    # Try to convert to float
-                    converted_value = float(value)
-                except ValueError:
-                    # If fails (e.g., a string like a timestamp), keep as-is
-                    converted_value = value
-                converted_row[key] = converted_value
-            data_dict.append(converted_row)
-    return data_dict
+This script provides a structure for implementing on_create, on_receive, and on_destroy functions.
+It includes a basic example using 'foo' and 'bar' concepts to demonstrate functionality.
+Each function should return a dictionary object with result data, or None if no result is needed.
+"""
 
-file_path = 'cat797f_egt_causal_data.csv'
-observation_input = csv_to_dict(file_path)
-
-# Combine into the final data dictionary
-data = {
-    "observation": observation_input,
-    "model_path": "causal_model.pkl"
-}
-
-""" In MetaAgent"""
+def on_create(data: dict) -> dict | None:
+    return None
 
 # Import necessary libraries
 import pandas as pd
@@ -110,5 +93,5 @@ def on_receive(data: dict) -> dict:
 
     return result
 
-result = on_receive(data)
-print(result)
+def on_destroy() -> dict | None:
+    return None

@@ -2,3 +2,4 @@
 *.pkl
 check_mse.py
 __pycache__/
+evaluator_*
