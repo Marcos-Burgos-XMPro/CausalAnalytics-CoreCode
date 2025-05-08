@@ -115,7 +115,7 @@ def on_receive(data: dict) -> dict:
             "status": "success",
             "message": "Arrow strengths calculated successfully.",
             "target_node": target_node,
-            "arrow_strength": txt_arrow_strengths_dict,
+            "arrow_strength": "Bug",
             "arrow_strength_pct": txt_arrow_strengths_pct_dict,
             "arrow_strengths_intervals": txt_arrow_strengths_intervals_dict
         }
