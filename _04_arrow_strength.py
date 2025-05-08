@@ -1,12 +1,18 @@
-""" Out of the MetaAgent"""
+"""
+Default script template for the Python Meta Action Agent.
 
-# Combine into the final data dictionary
-data = {
-    "model_path": "causal_model.pkl",
-    "target_node": 'egt_turbo_inlet'
-}
+When importing packages, follow the format below to add a comment at the end of declaration 
+and specify a version or a package name when the import name is different from expected python package.
+This allows the agent to install the correct package version during configuration:
+e.g. import paho.mqtt as np  # version=2.1.0 package=paho-mqtt
 
-""" In MetaAgent """
+This script provides a structure for implementing on_create, on_receive, and on_destroy functions.
+It includes a basic example using 'foo' and 'bar' concepts to demonstrate functionality.
+Each function should return a dictionary object with result data, or None if no result is needed.
+"""
+
+def on_create(data: dict) -> dict | None:
+    return None
 
 # Import necessary libraries
 from dowhy import gcm
@@ -20,6 +26,36 @@ import numpy as np
 warnings.filterwarnings("ignore")
 
 def on_receive(data: dict) -> dict:
+    """
+    Computes and returns the direct causal arrow strengths for a specified target node 
+    from a pre-trained causal model using bootstrap sampling.
+
+    The function performs the following:
+    1. Loads a causal model from the specified file path.
+    2. Estimates the direct arrow strengths from treatment nodes to the target node.
+    3. Computes confidence intervals and percentage contributions of the arrow strengths.
+    4. Returns all results in a structured dictionary, including rounded values and timestamp.
+
+    Parameters:
+    ----------
+    data : dict
+        A dictionary containing:
+            - "model_path" (str): Path to the serialized causal model file (.pkl).
+            - "target_node" (str): Name of the target node in the causal graph.
+
+    Returns:
+    -------
+    dict
+        A dictionary with the following keys:
+            - "timestamp": ISO formatted time when the evaluation was run.
+            - "status": "success" if the process completed or "error" if an exception occurred.
+            - "message": A success or error message.
+            - "target_node": The name of the target node used.
+            - "arrow_strength": JSON-encoded dictionary of direct arrow strengths (rounded values).
+            - "arrow_strength_pct": JSON-encoded dictionary of arrow strengths as percentages.
+            - "arrow_strengths_intervals": JSON-encoded dictionary of confidence intervals 
+                                           for each arrow strength.
+    """
     def convert_to_percentage(value_dictionary: dict) -> dict:
         total_absolute_sum = np.sum([abs(v) for v in value_dictionary.values()])
         if total_absolute_sum == 0:
@@ -93,5 +129,5 @@ def on_receive(data: dict) -> dict:
 
     return result
 
-result = on_receive(data)
-print(result)
+def on_destroy() -> dict | None:
+    return None
