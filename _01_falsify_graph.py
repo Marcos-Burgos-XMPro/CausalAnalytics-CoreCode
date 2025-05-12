@@ -21,6 +21,7 @@ from dowhy import gcm
 import ast
 from datetime import datetime
 from dowhy.gcm.falsify import falsify_graph
+import json
 
 def on_receive(data: dict) -> dict:
     """
@@ -72,7 +73,13 @@ def on_receive(data: dict) -> dict:
     gcm.util.general.set_random_seed(0)
     try:
         # --- Step 0: Read the test dataset into a pandas DataFrame
-        observation = pd.DataFrame(data['observation'])
+        # Option 1: If the data is a JSON string that needs to be deserialized
+        if isinstance(data['observation'], str):
+            deserialized_data = json.loads(data['observation'])  # In Meta Agent
+        # Option 2: If the data is already a dictionary
+        else:
+            deserialized_data = data['observation']  # In Local
+        observation = pd.DataFrame(deserialized_data)
 
         # --- Step 1: Define Causal Model ---
         # Create a directed graph representing the causal relationships
