@@ -1,62 +1,18 @@
-""" Out of the MetaAgent"""
+"""
+Default script template for the Python Meta Action Agent.
 
-import csv
+When importing packages, follow the format below to add a comment at the end of declaration 
+and specify a version or a package name when the import name is different from expected python package.
+This allows the agent to install the correct package version during configuration:
+e.g. import paho.mqtt as np  # version=2.1.0 package=paho-mqtt
 
-# Read the CSV file into a dictionary
-def csv_to_dict(file_path):
-    with open(file_path, 'r') as f:
-        reader = csv.DictReader(f)
-        data_dict = []
-        for row in reader:
-            converted_row = {}
-            for key, value in row.items():
-                try:
-                    # Try to convert to float
-                    converted_value = float(value)
-                except ValueError:
-                    # If fails (e.g., a string like a timestamp), keep as-is
-                    converted_value = value
-                converted_row[key] = converted_value
-            data_dict.append(converted_row)
-    return data_dict
+This script provides a structure for implementing on_create, on_receive, and on_destroy functions.
+It includes a basic example using 'foo' and 'bar' concepts to demonstrate functionality.
+Each function should return a dictionary object with result data, or None if no result is needed.
+"""
 
-file_path = 'cat797f_egt_causal_data.csv'
-observation_input = csv_to_dict(file_path)
-
-causal_relationships = """
-    [
-        # Air intake system relationships
-        ('altitude', 'air_filter_pressure'),
-        ('air_filter_pressure', 'egt_turbo_inlet'),
-        ('air_filter_pressure', 'fuel_consumption'),
-        
-        # Primary mechanical relationships
-        ('engine_load', 'engine_rpm'),
-        ('engine_load', 'fuel_consumption'),
-        ('engine_rpm', 'air_filter_pressure'),
-        
-        # Environmental influences
-        ('altitude', 'engine_load'),
-        ('ambient_temp', 'coolant_temp'),
-        ('ambient_temp', 'egt_turbo_inlet'),
-        
-        # Fuel and combustion chain
-        ('fuel_consumption', 'egt_turbo_inlet'),
-        ('engine_load', 'egt_turbo_inlet'),
-        
-        # Cooling system relationships
-        ('coolant_temp', 'egt_turbo_inlet'),
-        ('engine_rpm', 'coolant_temp')
-    ]
-    """ 
-
-# Combine into the final data dictionary
-data = {
-    "observation": observation_input,
-    "causal_relationships": causal_relationships,
-}
-
-""" In MetaAgent"""
+def on_create(data: dict) -> dict | None:
+    return None
 
 # Install Libraries
 import networkx as nx
@@ -67,6 +23,51 @@ from datetime import datetime
 from dowhy.gcm.falsify import falsify_graph
 
 def on_receive(data: dict) -> dict:
+    """
+    Evaluate the falsifiability and validity of a user-defined causal graph against observational data.
+
+    This function takes in a dictionary containing observational data and a string-formatted list of
+    causal relationships. It constructs a causal graph using NetworkX, applies falsifiability tests 
+    using `dowhy.gcm.falsify_graph`, and returns a structured result with the test outcomes and interpretation.
+
+    Parameters:
+    -----------
+    data : dict
+        A dictionary with the following required keys:
+        - "observation": A list of dictionaries (typically converted from a CSV file) representing 
+          tabular observational data, where each dictionary is a row with column names as keys.
+        - "causal_relationships": A string representing a Python list of tuple pairs, 
+          each defining a directed edge in the causal graph (e.g., "('A', 'B')").
+
+    Returns:
+    --------
+    dict
+        A dictionary containing:
+        - "timestamp": The time the function was executed.
+        - "status": "success" if the test ran without error, "error" otherwise.
+        - "message": Status description or error message.
+        - "causal_relationships": The input causal relationships.
+        - "falsifiable": Boolean indicating if the causal model makes testable predictions.
+        - "falsified": Boolean indicating if the testable predictions contradict the data.
+        - "explanation": Human-readable interpretation of the falsifiability result.
+
+    Notes:
+    ------
+    - The causal relationships must be meaningful and concrete enough to allow conditional 
+      independence testing.
+    - The `falsify_graph` method evaluates if the graph structure holds up against statistical 
+      tests derived from observed dependencies and independencies in the data.
+    - The input data is expected to be pre-processed (e.g., numeric values where applicable).
+
+    Example:
+    --------
+    >>> data = {
+    ...     "observation": csv_to_dict("cat797f_egt_causal_data.csv"),
+    ...     "causal_relationships": "[('engine_load', 'fuel_consumption'), ('fuel_consumption', 'egt_turbo_inlet')]"
+    ... }
+    >>> result = on_receive(data)
+    >>> print(result["falsifiable"], result["falsified"])
+    """
     # Set a fixed random seed for reproducibility
     gcm.util.general.set_random_seed(0)
     try:
@@ -130,4 +131,5 @@ def on_receive(data: dict) -> dict:
 
     return result
 
-print(on_receive(data))
+def on_destroy() -> dict | None:
+    return None
