@@ -1,14 +1,18 @@
-""" Out of the MetaAgent"""
+"""
+Default script template for the Python Meta Action Agent.
 
-# Combine into the final data dictionary
-data = {
-    "model_path": "causal_model.pkl",
-    "intervention_input":  "[('altitude', 5),('ambient_temp', 3)]",
-    "num_samples_to_draw": 5,
-    "intervention_type": "atomic" # {atomic, shift}
-}
+When importing packages, follow the format below to add a comment at the end of declaration 
+and specify a version or a package name when the import name is different from expected python package.
+This allows the agent to install the correct package version during configuration:
+e.g. import paho.mqtt as np  # version=2.1.0 package=paho-mqtt
 
-""" In MetaAgent """
+This script provides a structure for implementing on_create, on_receive, and on_destroy functions.
+It includes a basic example using 'foo' and 'bar' concepts to demonstrate functionality.
+Each function should return a dictionary object with result data, or None if no result is needed.
+"""
+
+def on_create(data: dict) -> dict | None:
+    return None
 
 # Import necessary libraries
 from dowhy import gcm
@@ -22,6 +26,37 @@ import ast
 warnings.filterwarnings("ignore")
 
 def on_receive(data: dict) -> dict:
+    """
+    Executes a causal intervention on a pre-trained model and returns simulated outcomes.
+
+    This function performs an interventional query (either atomic or shift) on a loaded causal model,
+    using user-provided intervention variables. It generates a set of samples that represent the
+    model’s behavior under the specified intervention.
+
+    Parameters:
+    -----------
+    data : dict
+        A dictionary containing the following keys:
+        - "model_path" (str): Path to the serialized causal model (pickle file).
+        - "intervention_input" (str): A string representation of a list of (variable, value) tuples
+          indicating which variables to intervene on and their assigned values, e.g.,
+          "[('altitude', 5), ('ambient_temp', 3)]".
+        - "num_samples_to_draw" (int): Number of samples to generate from the interventional distribution.
+        - "intervention_type" (str): The type of intervention, must be either "atomic" (value replacement)
+          or "shift" (value adjustment).
+
+    Returns:
+    --------
+    dict
+        A dictionary with the following keys:
+        - "timestamp" (str): Time the function was executed.
+        - "status" (str): "success" if execution was successful; "error" otherwise.
+        - "message" (str): Description of success or error message.
+        - "intervention_input" (str): The original intervention input received.
+        - "intervention_type" (str): The type of intervention performed.
+        - "intervention_output" (str or None): A JSON string of the simulated intervention samples,
+          or None if an error occurred.
+    """
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     try:
         # Retrieve input parameters from the data dictionary
@@ -70,5 +105,5 @@ def on_receive(data: dict) -> dict:
 
     return result
 
-result = on_receive(data)
-print(result)
+def on_destroy() -> dict | None:
+    return None
