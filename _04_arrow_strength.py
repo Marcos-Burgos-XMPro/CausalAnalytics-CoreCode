@@ -43,18 +43,26 @@ def on_receive(data: dict) -> dict:
             - "model_path" (str): Path to the serialized causal model file (.pkl).
             - "target_node" (str): Name of the target node in the causal graph.
 
-    Returns:
+    Returns
     -------
     dict
         A dictionary with the following keys:
-            - "timestamp": ISO formatted time when the evaluation was run.
-            - "status": "success" if the process completed or "error" if an exception occurred.
-            - "message": A success or error message.
-            - "target_node": The name of the target node used.
-            - "arrow_strength": JSON-encoded dictionary of direct arrow strengths (rounded values).
-            - "arrow_strength_pct": JSON-encoded dictionary of arrow strengths as percentages.
-            - "arrow_strengths_intervals": JSON-encoded dictionary of confidence intervals 
-                                           for each arrow strength.
+            - "timestamp": Timestamp when the computation was executed.
+            - "status": "success" or "error" depending on process outcome.
+            - "message": Success or error message.
+            - "target_node": The node for which the analysis was conducted.
+            - "arrow_strength_edge": JSON-encoded dictionary of edge-based arrow strengths 
+                                      with format "(source, target)" → strength.
+            - "arrow_strength_edge_pct": JSON-encoded dictionary of edge-based strengths 
+                                          as percentages of total influence.
+            - "arrow_strengths_edge_intervals": JSON-encoded dictionary of edge-based 
+                                                 95% confidence intervals for arrow strengths.
+            - "arrow_strength_node": JSON-encoded dictionary of treatment nodes and their 
+                                     direct influence strengths on the target node.
+            - "arrow_strength_node_pct": JSON-encoded dictionary of treatment nodes and 
+                                         their percentage contributions.
+            - "arrow_strengths_node_intervals": JSON-encoded dictionary of node-level 
+                                                95% confidence intervals.
     """
     def convert_to_percentage(value_dictionary: dict) -> dict:
         total_absolute_sum = np.sum([abs(v) for v in value_dictionary.values()])
@@ -87,22 +95,28 @@ def on_receive(data: dict) -> dict:
         arrow_strengths = arrow_strengths_median
         arrow_strengths_pct = convert_to_percentage(arrow_strengths)
 
+        # Node Version
         # --- Prepare Output Dictionary (sorted descending by value) ---
-        arrow_strengths_dict = dict(
+        arrow_strengths_node = dict(
             sorted(
                 ((treatment, round(value, 2)) for (treatment, _), value in arrow_strengths.items()),
                 key=lambda item: item[1],
                 reverse=True
             )
         )
-        arrow_strengths_pct_dict = dict(
+        arrow_strengths_pct_node = dict(
             sorted(
                 ((treatment, round(value, 2)) for (treatment, _), value in arrow_strengths_pct.items()),
                 key=lambda item: item[1],
                 reverse=True
             )
         )
-        arrow_strengths_intervals_dict = dict((treatment, [round(x, 2) for x in value.tolist()]) for (treatment, _), value in arrow_strengths_intervals.items())
+        arrow_strengths_intervals_node = dict((treatment, [round(x, 2) for x in value.tolist()]) for (treatment, _), value in arrow_strengths_intervals.items())
+
+        #Edge version
+        arrow_strengths_edge_str = {f"({k[0]}, {k[1]})": round(v, 2) for k, v in arrow_strengths.items()}
+        arrow_strengths_pct_edge_str = {f"({k[0]}, {k[1]})": round(v, 2) for k, v in arrow_strengths_pct.items()}
+        arrow_strengths_intervals_edge_str = {f"({k[0]}, {k[1]})": [round(x, 2) for x in v.tolist()] for k, v in arrow_strengths_intervals.items()}
 
         # Return successful evaluation result
         result = {
@@ -110,9 +124,12 @@ def on_receive(data: dict) -> dict:
             "status": "success",
             "message": "Arrow strengths calculated successfully.",
             "target_node": target_node,
-            "arrow_strength": json.dumps(arrow_strengths_dict),
-            "arrow_strength_pct": json.dumps(arrow_strengths_pct_dict),
-            "arrow_strengths_intervals": json.dumps(arrow_strengths_intervals_dict)
+            "arrow_strength_edge": json.dumps(arrow_strengths_edge_str),
+            "arrow_strength_edge_pct": json.dumps(arrow_strengths_pct_edge_str),
+            "arrow_strengths_edge_intervals": json.dumps(arrow_strengths_intervals_edge_str),
+            "arrow_strength_node": json.dumps(arrow_strengths_node),
+            "arrow_strength_node_pct": json.dumps(arrow_strengths_pct_node),
+            "arrow_strengths_node_intervals": json.dumps(arrow_strengths_intervals_node)
         }
 
     except Exception as e:
@@ -122,9 +139,12 @@ def on_receive(data: dict) -> dict:
             "status": "error",
             "message": str(e),
             "target_node": data.get("target_node", ""),
-            "arrow_strength": None,
-            "arrow_strength_pct": None,
-            "arrow_strengths_intervals": None
+            "arrow_strength_edge": None,
+            "arrow_strength_edge_pct": None,
+            "arrow_strengths_edge_intervals": None,
+            "arrow_strength_node": None,
+            "arrow_strength_node_pct": None,
+            "arrow_strengths_node_intervals": None
         }
 
     return result
